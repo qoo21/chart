@@ -1,0 +1,108 @@
+/* Chart Maker（譜面画像を作るページ）。色・文字・ボタンは app.css と共通（案B：チケット）
+   手順の1つ1つをチケットにし、左の半券に手順の番号を入れる */
+.mk { padding: 6px 16px 56px; }
+.mk-step {
+  position: relative; margin-top: 16px; padding: 20px 20px 22px 96px; border: 1px solid var(--line); border-radius: 8px;
+  background:
+    radial-gradient(circle at 72px 0, var(--paper) 9px, transparent 9.5px),
+    radial-gradient(circle at 72px 100%, var(--paper) 9px, transparent 9.5px),
+    linear-gradient(90deg, var(--ink) 72px, var(--sheet) 72px);
+}
+.mk-step::after { content: ""; position: absolute; left: 71px; top: 14px; bottom: 14px; border-left: 2px dashed var(--paper); opacity: .85; pointer-events: none; }
+/* ★ v45 追加: 暗い表示では、白い半券の右の切り取り線を点線でなく直線にする（点線だとギザギザに見えるため） */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mk-step::after { border-left-style: solid; } }
+:root[data-theme="dark"] .mk-step::after { border-left-style: solid; }
+.mk-step h2 { margin: 0 0 14px; font-size: 20px; font-weight: 800; }
+.mk-no { position: absolute; left: 0; top: 16px; width: 72px; text-align: center; color: var(--paper); font-family: var(--num); font-size: 40px; font-weight: 800; line-height: 1; }
+.mk-step h3 { margin: 0 0 10px; font-size: 15px; font-weight: 800; }
+.mk-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.mk-row + .mk-row { margin-top: 10px; }
+.mk-sp { flex: 1; }
+.mk-hint { color: var(--sub); font-size: 13px; margin: 8px 0 0; }
+.mk-small { padding: 3px 10px; font-size: 13px; }
+.mk-stop { border-color: var(--d-expert); color: var(--d-expert); }
+.mk-num { width: 92px; }
+.mk-rate, .mk-layout { width: auto; }
+.mk-check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.mk input[type="range"] { accent-color: var(--action); }
+.mk input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--action); }
+.mk-offset { gap: 6px; }
+.mk-offset input[type="range"] { width: 120px; }
+
+/* 動画（フォルダ）の切り替え：小さなチケット */
+.folder-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 12px 0 2px; -webkit-overflow-scrolling: touch; }
+.folder-set-btn {
+  flex: 0 0 auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px;
+  background: var(--sheet); cursor: pointer; white-space: nowrap; font-size: 14px;
+}
+.folder-set-btn:hover { background: var(--hover); }
+.folder-set-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 700; }
+.folder-set-btn.unprocessed { border-style: dashed; border-color: var(--sub); }
+
+/* 2. プレビューと作成する範囲 */
+.mk-make { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 22px; align-items: start; }
+.preview-wrapper { background: #000; border-radius: 6px; overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 180px; }
+#videoPreview { display: none; }
+#previewCanvas { max-width: 100%; max-height: 360px; display: block; }
+.transport { margin-top: 10px; }
+.transport input[type="range"] { flex: 1 1 160px; min-width: 120px; }
+#currentTimeLabel { font-family: var(--num); font-size: 16px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mk-range { background: var(--hover); border: 1px solid var(--line); border-radius: 6px; padding: 14px 14px 12px; }
+.mk-pair { display: grid; grid-template-columns: 5.5em auto auto; gap: 8px; align-items: center; justify-content: start; margin-top: 8px; }
+.mk-pair label { font-size: 14px; color: var(--sub); }
+.mk-slider { margin-top: 12px; }
+.mk-slider label { display: block; font-size: 14px; color: var(--sub); }
+.mk-slider label b { color: var(--ink); font-family: var(--num); font-size: 17px; font-weight: 800; }
+.mk-slider input { width: 100%; }
+#genActionGroup { margin-top: 18px; }
+.mk-wide { padding: 8px 22px; font-size: 16px; }
+
+.mk-progress { margin-top: 14px; }
+#progressText { flex: 1 1 220px; font-size: 14px; }
+#progressPercent { font-family: var(--num); font-size: 20px; font-weight: 800; }
+.progress-bar-bg { height: 6px; background: var(--line); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.progress-bar-fill { height: 100%; width: 0%; background: var(--action); transition: width .1s; }
+
+/* 生成中は他の操作を止める */
+.locked-during-gen { pointer-events: none !important; opacity: .45 !important; user-select: none !important; }
+
+/* 3. 確認画面（譜面は黒地のまま見せる） */
+#zoomLevelLabel { font-family: var(--num); font-size: 17px; font-weight: 800; min-width: 52px; text-align: center; }
+.viewer-col-jumps { display: none; gap: 6px; overflow-x: auto; padding-top: 10px; }
+.viewer-col-jumps .btn { flex: 0 0 auto; }
+.viewer-col-jumps span { color: var(--sub) !important; }
+.viewer-box { position: relative; background: #000; border-radius: 6px; overflow: hidden; margin-top: 12px; }
+.viewer-box.fullscreen { position: fixed; inset: 0; z-index: 9999; margin: 0; border-radius: 0; }
+.exit-fullscreen-btn { display: none; position: fixed; top: 12px; right: 12px; z-index: 10001; }
+.viewer-box.fullscreen .exit-fullscreen-btn { display: inline-block; }
+.viewer-viewport { position: relative; width: 100%; height: min(68vh, 620px); overflow: hidden; cursor: grab; background: #000; user-select: none; touch-action: none; }
+.viewer-box.fullscreen .viewer-viewport { height: 100vh; height: 100dvh; }
+.viewer-viewport.dragging { cursor: grabbing; }
+#canvasStage { transform-origin: 0 0; position: absolute; top: 0; left: 0; will-change: transform; }
+#outputCanvas { display: block; }
+#reLayoutActionGroup { margin-top: 14px; }
+#bottomSaveBar { margin-top: 10px; }
+.mk-col { gap: 6px; }
+
+/* 再生位置バー：拡大率に関係なく画面上で一定の太さ */
+#playheadColHighlight { position: absolute; top: 0; left: 0; z-index: 3; border: 2px solid rgba(255, 79, 123, .55); pointer-events: none; display: none; will-change: transform; }
+#playheadBar { position: absolute; top: 0; left: 0; z-index: 4; height: 12px; margin-top: -6px; pointer-events: none; display: none; will-change: transform; }
+#playheadBar::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: #ff4f7b; }
+#playheadTimeBadge { position: absolute; left: 0; bottom: 100%; margin-bottom: 2px; background: #ff4f7b; color: #fff; font-size: 12px; line-height: 18px; padding: 0 6px; border-radius: 3px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 820px) {
+  .mk { padding: 4px 12px 40px; }
+  .mk-step {
+    padding: 16px 14px 18px 62px;
+    background:
+      radial-gradient(circle at 46px 0, var(--paper) 8px, transparent 8.5px),
+      radial-gradient(circle at 46px 100%, var(--paper) 8px, transparent 8.5px),
+      linear-gradient(90deg, var(--ink) 46px, var(--sheet) 46px);
+  }
+  .mk-step::after { left: 45px; }
+  .mk-no { width: 46px; font-size: 28px; top: 14px; }
+  .mk-make { grid-template-columns: 1fr; gap: 14px; }
+  #previewCanvas { max-height: 240px; }
+  .mk-wide { flex: 1 1 100%; }
+  .mk-step h2 { font-size: 18px; }
+}

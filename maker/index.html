@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chart Maker｜譜面画像を作る</title>
+<meta name="description" content="譜面の録画から、譜面全体を1枚にした画像を作ります。動画はこのブラウザの中だけで処理されます。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chart Viewer">
+<meta property="og:title" content="Chart Maker｜譜面画像を作る">
+<meta property="og:description" content="譜面制作画面の録画から、譜面全体画像を作ります">
+<meta property="og:url" content="https://qoo21.github.io/chart/maker/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+2:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/app.css?v=e435dc6fcc">
+<link rel="stylesheet" href="../assets/maker.css?v=e435dc6fcc">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1><a href="../maker/" style="color:inherit;text-decoration:none">Chart Maker</a></h1>
+    <div class="meta">譜面制作画面の録画から、譜面全体画像を作ります</div>
+    <a class="navlink" href="../">譜面を探す</a>
+    <button class="theme" id="themeBtn" type="button" title="明るさを切り替える" aria-label="明るさを切り替える"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg></button>
+  </div>
+</header>
+
+<main class="wrap mk">
+  <!-- 1. 読み込み -->
+  <section class="mk-step" id="topSwitcherCard">
+    <h2><span class="mk-no">1</span>動画を読み込む</h2>
+    <div class="mk-row" id="headerControls">
+      <button class="btn" id="linkRootFolderBtn" type="button" title="フォルダを登録すると、次回から自動で読み込み、作った画像と設定をそのフォルダに自動で保存します">フォルダを登録</button>
+      <button class="btn" id="selectFolderBtn" type="button">フォルダを開く</button>
+      <button class="btn" id="selectFilesBtn" type="button">ファイルを開く</button>
+      <input type="file" id="filesInput" accept="video/*,image/*,.json" multiple style="display:none;">
+      <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
+      <span class="mk-sp"></span>
+      <button class="btn mk-small" id="reconnectFolderBtn" type="button" style="display:none;">前回のフォルダを読み込む</button>
+      <button class="btn mk-small" id="refreshFolderBtn" type="button" style="display:none;">再読み込み</button>
+    </div>
+    <p class="mk-hint" id="folderStatusLabel">譜面の録画（と作成済みの画像）を選んでください。ドラッグ＆ドロップでも読み込めます。</p>
+    <div id="switcherContent" style="display:none;">
+      <div class="folder-tabs" id="folderTabs"></div>
+    </div>
+  </section>
+
+  <!-- 2. 作る -->
+  <section class="mk-step" id="unifiedPreviewCard">
+    <h2><span class="mk-no">2</span>譜面画像を作る</h2>
+    <div class="mk-make">
+      <div class="mk-preview">
+        <div class="preview-wrapper">
+          <video id="videoPreview" playsinline></video>
+          <canvas id="previewCanvas" width="640" height="360"></canvas>
+        </div>
+        <div class="mk-row transport" id="mainTransportBar">
+          <button class="btn" id="playPauseBtn" type="button">再生 / 停止</button>
+          <input type="range" id="seekSlider" min="0" max="100" step="0.02" value="0" aria-label="再生位置">
+          <span id="currentTimeLabel">0.00 秒 / 0.00 秒</span>
+          <select class="field mk-rate" id="playbackRateSelect" aria-label="再生速度">
+            <option value="0.25">0.25倍</option>
+            <option value="0.5">0.5倍</option>
+            <option value="0.75">0.75倍</option>
+            <option value="1" selected>1倍</option>
+            <option value="1.25">1.25倍</option>
+            <option value="1.5">1.5倍</option>
+            <option value="2">2倍</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 作成する範囲（変えられる設定はここだけ） -->
+      <div class="mk-range" id="detailsTab">
+        <h3>作成する範囲</h3>
+        <div class="mk-pair">
+          <label for="startTimeInput">開始（秒）</label>
+          <input class="field mk-num" type="number" id="startTimeInput" step="0.1" value="0.0" inputmode="decimal">
+          <button class="btn mk-small" id="setStartBtn" type="button">今の位置</button>
+        </div>
+        <div class="mk-pair">
+          <label for="endTimeInput">終了（秒）</label>
+          <input class="field mk-num" type="number" id="endTimeInput" step="0.1" value="0.0" inputmode="decimal">
+          <button class="btn mk-small" id="setEndBtn" type="button">今の位置</button>
+        </div>
+        <div class="mk-slider">
+          <label for="cropLeftSlider">左端 <b><span id="leftVal">18.0</span>%</b></label>
+          <input type="range" id="cropLeftSlider" min="0" max="45" step="0.5" value="18">
+        </div>
+        <div class="mk-slider">
+          <label for="cropRightSlider">右端 <b><span id="rightVal">78.5</span>%</b></label>
+          <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5">
+        </div>
+        <p class="mk-hint">プレビューの枠の中が画像になります。点線の位置にある譜面を、確認画面の再生位置バーが指します。</p>
+      </div>
+    </div>
+
+    <div class="mk-row" id="genActionGroup">
+      <button class="btn primary mk-wide" id="generateBtn" type="button" disabled>譜面画像を作成</button>
+      <button class="btn" id="testGenerateBtn" type="button" disabled>最初の12秒で試す</button>
+      <button class="btn" id="batchGenerateBtn" type="button" disabled>未作成をまとめて作成</button>
+    </div>
+
+    <div class="mk-progress" id="progressContainer" style="display:none;">
+      <div class="mk-row">
+        <span id="progressText">準備中...</span>
+        <span id="progressPercent">0%</span>
+        <button class="btn mk-small mk-stop" id="progressStopBtn" type="button" disabled>停止</button>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+    </div>
+
+    <!-- 変えなくてよい設定（画面には出さず、初めの値のまま使う） -->
+    <div hidden>
+      <span id="deviceSpecBadge"></span>
+      <select id="resolutionSelect">
+        <option value="original" selected>元の動画のまま</option>
+        <option value="1080">高さ 1080px まで</option>
+        <option value="720">高さ 720px まで</option>
+        <option value="560">高さ 560px まで</option>
+      </select>
+      <input type="checkbox" id="blackBgToggle" checked>
+      <span id="blackBgControls"></span>
+      <span id="bgThreshLabel">36</span>
+      <input type="range" id="bgThreshSlider" min="25" max="110" step="1" value="36">
+      <span id="gridBoostLabel">0.5倍</span>
+      <input type="range" id="gridBoostSlider" min="0.5" max="3.5" step="0.1" value="0.5">
+      <span id="speedValLabel">47.50 %/秒</span>
+      <input type="range" id="speedSlider" min="15" max="160" step="0.02" value="47.50">
+      <input type="number" id="speedInput" step="0.02" value="47.50">
+      <button id="autoSpeedBtn" type="button">自動で測る</button>
+    </div>
+  </section>
+
+  <!-- 3. 確認と保存 -->
+  <section class="mk-step">
+    <h2><span class="mk-no">3</span>確認して保存</h2>
+    <p class="mk-hint" id="currentViewFileName"></p>
+    <div id="viewerTopControls">
+      <div class="mk-row">
+        <button class="btn" id="viewerPlayPauseBtn" type="button">再生 / 停止</button>
+        <select class="field mk-rate" id="viewerPlaybackRateSelect" aria-label="再生速度">
+          <option value="0.25">0.25倍</option>
+          <option value="0.5">0.5倍</option>
+          <option value="0.75">0.75倍</option>
+          <option value="1" selected>1倍</option>
+          <option value="1.25">1.25倍</option>
+          <option value="1.5">1.5倍</option>
+          <option value="2">2倍</option>
+        </select>
+        <span class="mk-sp"></span>
+        <button class="btn mk-small" id="zoomOutBtn" type="button" aria-label="縮小">−</button>
+        <span id="zoomLevelLabel">100%</span>
+        <button class="btn mk-small" id="zoomInBtn" type="button" aria-label="拡大">＋</button>
+        <button class="btn mk-small" id="fitAllBtn" type="button">全体</button>
+        <button class="btn mk-small" id="fitHeightBtn" type="button">高さ合わせ</button>
+        <button class="btn mk-small" id="zoom100Btn" type="button">等倍</button>
+        <button class="btn mk-small" id="fullscreenBtn" type="button">全画面</button>
+      </div>
+      <div class="mk-row">
+        <label class="mk-check"><input type="checkbox" id="showPlayheadToggle" checked>再生位置バー</label>
+        <label class="mk-check"><input type="checkbox" id="followPlayheadToggle">バーを追いかける</label>
+        <span class="mk-row mk-offset">
+          <span class="mk-hint">バーのずれ（秒）</span>
+          <input type="range" id="playheadOffsetSlider" min="-2.00" max="2.00" step="0.01" value="0.00" aria-label="バーのずれ">
+          <input class="field mk-num" type="number" id="playheadOffsetInput" step="0.01" min="-5.00" max="5.00" value="0.00" inputmode="decimal" aria-label="バーのずれ（秒）">
+          <button class="btn mk-small" id="resetOffsetBtn" type="button">0に戻す</button>
+        </span>
+      </div>
+      <div class="viewer-col-jumps" id="colJumpBar"></div>
+    </div>
+
+    <div class="viewer-box" id="viewerBox">
+      <button class="btn primary exit-fullscreen-btn" id="exitFullscreenBtn" type="button">閉じる</button>
+      <div class="viewer-viewport" id="viewerViewport" title="ドラッグで移動・ホイール／ピンチで拡大縮小・ダブルクリック（ダブルタップ）でその位置へ移動">
+        <div id="canvasStage">
+          <canvas id="outputCanvas"></canvas>
+        </div>
+        <div id="playheadColHighlight"></div>
+        <div id="playheadBar"><span id="playheadTimeBadge">0.00s</span></div>
+      </div>
+    </div>
+    <p class="mk-hint">ドラッグで移動、ホイールまたは2本指で拡大縮小。ダブルクリック（ダブルタップ）でその位置から再生できます。</p>
+
+    <div class="mk-row" id="reLayoutActionGroup">
+      <label class="mk-hint" for="colHeightInput">1列の高さ</label>
+      <input class="field mk-num" type="number" id="colHeightInput" step="100" min="400" max="16000" value="8000" inputmode="numeric">
+      <select class="field mk-layout" id="layoutMode" aria-label="並べ方">
+        <option value="grid" selected>折り返して並べる</option>
+        <option value="single">1本の縦長にする</option>
+      </select>
+      <button class="btn" id="reLayoutBtn" type="button" disabled>並べ直す</button>
+    </div>
+
+    <div class="mk-row" id="bottomSaveBar">
+      <button class="btn primary mk-wide" id="downloadPngBtn" type="button">画像を保存</button>
+      <span class="mk-row mk-col">
+        <input class="field mk-num" type="text" id="targetColInput" placeholder="列番号" value="1" inputmode="numeric" aria-label="列番号">
+        <button class="btn" id="downloadSingleColBtn" type="button">この列だけ保存</button>
+      </span>
+      <button class="btn" id="downloadResultZipBtn" type="button">ZIPでまとめて保存</button>
+    </div>
+    <p class="mk-hint" id="bottomSaveStatusLabel"></p>
+  </section>
+
+  <!-- 4. 譜面ビューアに載せる -->
+  <section class="mk-step mk-last">
+    <h2><span class="mk-no">4</span>譜面ビューアに載せる</h2>
+    <p>保存した画像を、Discord で <code>/mypage</code> の <code>image</code> に添付して送ると、どの譜面に付けるかを選べます。付けた後に「公開」（公開した後は「保存」）を押すと、譜面ビューアの譜面のページに表示されます。</p>
+  </section>
+</main>
+<!-- ★ v33 追加: 権利表記（非公式のファンサイトであること・ゲームの画像の権利） -->
+<footer class="foot">
+  <div class="wrap">
+    <p>このサイトは非公式のファンサイトです。株式会社セガ・株式会社Colorful Palette・クリプトン・フューチャー・メディア株式会社とは関係ありません。</p>
+    <p>楽曲のジャケット画像など、ゲームの画像の著作権その他の権利は、各権利者に帰属します。</p>
+    <p class="copy-r">© SEGA / © Colorful Palette Inc. / © Crypton Future Media, INC. www.piapro.net All rights reserved.</p>
+    <p class="foot-links"><a href="../terms/">利用規約</a></p><!-- ★ v47 追加 -->
+  </div>
+</footer>
+<script src="../assets/maker.js?v=e435dc6fcc"></script>
+</body>
+</html>
